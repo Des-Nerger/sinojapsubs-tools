@@ -1,0 +1,36 @@
+'[OZC] Ghost in the Shell - Stand Alone Complex/Jap.Subs/'*.srt
+'Castle_in_the_Sky/Laputa_Castle_In_The_Sky_(1986.08.02).srt'
+'Valley_of_the_Wind/Nausicaa_Of_The_Valley_Of_The_Wind_Movie_(1984.03.04).srt'
+'Японский, которого не знают японцы/jap.subs/'*.srt
+Sailor_Moon/Japanese.Subs/*.srt
+'1. Pocket Monsters [stitchix]/jap.subs/'*.srt
+higurashi/jap.subs/unpacked/*.srt
+~/'Temp/media/watched_videos_leftovers/Dragon_Ball_TV_[MCShamaN]/subs/'*.srt
+'Moj.Sosed.Totoro.BDRip.x264.ac3.RG.25.Kadr.[by.L]/subs.jap/My_Neighbor_Totoro_Movie_(1988.04.16).srt'
+~/'Temp/media/watched_videos_leftovers/Rozen Maiden (2013)/jap.subs/'*.srt
+'[Zeonic-Corps] Mobile Suit Gundam 0079 [640x480 H.264 AAC]/subs.jap/'*.ass
+'Lucky Star [BD] [720p]/subs.jap/unpacked/'*p.ass
+'[CactusTeam]_Sailor_Moon_Crystal_(x264_720p_AAC)_[MVO]/subs/only.jap/'*.ass
+~/'Temp/media/watched_videos_leftovers/Hetalia Axis Powers/subs.jap/only.jap/'*.ass
+~/'Temp/media/watched_videos_leftovers/Neon Genesis Evangelion (DCPE)/jap.subs/unpacked/'*.ass
+
+
+~/'Temp/media/watched_videos_leftovers/Darker than Black 2 [BD-HDHWP]/jap sub/Darker_Than_Black_Ryuusei_No_Gemini_[1-12]/Darker_Than_Black_Ryuusei_No_Gemini_'*.{srt,ass}
+
+
+'anime_subtitles/Kimi no na JP.srt'
+'anime_subtitles/Steins;Gate (01-24)/'*.srt
+'anime_subtitles/Cowboy Bebop (01-26)/'*.srt
+'anime_subtitles/Steins;Gate 0/'*.srt
+'anime_subtitles/Fullmetal_Alchemist_Brotherhood_[1-64]/utf8/'*.ass
+'anime_subtitles/[I.G&CASO]K-ON!.JP.ass/utf8/'*.ass
+'anime_subtitles/[Kamigami] Initial D Fifth Stage.Japanese/'*.ass
+'anime_subtitles/Gintama (1-316)/'*.{srt,ass}
+'anime_subtitles/Detective_Conan/'*.{srt,ass,ssa}
+
+
+'anime_subtitles/[Conan06] 映画ドラえもん Doraemon Movie 01-25 JPN [WOWOW] (v2)/'*.ass
+'anime_subtitles/Chibi Maruko-chan (1990)/'*.{ass,srt}
+
+
+'Akira.1988/Akira.CC.ja.srt'
