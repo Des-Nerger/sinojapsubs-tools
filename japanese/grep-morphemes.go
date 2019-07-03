@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/Des-Nerger/go-astisub"
 	"github.com/asticode/go-astilog"
-	"github.com/asticode/go-astisub"
 )
 
 func init() {
