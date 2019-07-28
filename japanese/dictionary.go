@@ -89,7 +89,8 @@ func (d *Dictionary) Translate(morphemes ...Morpheme) (translation string, ok bo
 			case "基本形": // dictionary form
 				return "する"
 			case "未然形": // imperfective
-				dummyLoop: for {
+			dummyLoop:
+				for {
 					if len(morphemes) > 1 {
 						nextMorpheme := &morphemes[1]
 						switch nextMorpheme[1] {
@@ -101,7 +102,9 @@ func (d *Dictionary) Translate(morphemes ...Morpheme) (translation string, ok bo
 							fallthrough
 						case "せる", "れる":
 							return "さ"
-						case "ない", "ぬ":
+						case "ぬ":
+							return "せ"
+						case "ない":
 							break dummyLoop
 						default:
 							switch nextMorpheme[0] {
