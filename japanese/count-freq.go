@@ -1,5 +1,6 @@
 package main
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"sort"
@@ -20,9 +21,18 @@ func main() {
 		j := Jumanpp{Path: "/opt/jumanpp/bin/jumanpp"}
 		j.Start()
 		defer j.Wait()
-		for _, arg := range os.Args[1:] {
-			fmt.Fprintln(os.Stdout, arg)
-			subs, err := astisub.OpenFile(arg)
+		filenames := []string(nil)
+		if len(os.Args) <= 1 {
+			sc := bufio.NewScanner(os.Stdin)
+			for sc.Scan() {
+				filenames = append(filenames, sc.Text())
+			}
+		} else {
+			filenames = os.Args[1:]
+		}
+		for _, filename := range filenames {
+			fmt.Fprintln(os.Stdout, filename)
+			subs, err := astisub.OpenFile(filename)
 			if err != nil {
 				fmt.Fprintln(os.Stdout, err)
 				continue
