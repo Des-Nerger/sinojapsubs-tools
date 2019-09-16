@@ -37,7 +37,13 @@ func main() {
 	{
 		stdinSc := bufio.NewScanner(os.Stdin)
 		for stdinSc.Scan() {
-			frequentWordsSet[ strings.Split(stdinSc.Text(),"\t")[1] ] = struct{}{}
+			line := stdinSc.Text()
+			if line == "" || line[0] == '#' {continue}
+			fields := strings.Fields(line)
+			if !(len(fields)==1 && fields[0]==line) {
+				fmt.Fprintf(os.Stdout, "warning: line contains whitespace: %q, but proceeding anyway\n", line)
+			}
+			frequentWordsSet[line] = struct{}{}
 		}
 	}
 	inputFileName := os.Args[1]
