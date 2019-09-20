@@ -51,7 +51,7 @@ func trimSuffixだIfItIsAppropriateAdjective(fields []string) {
 }
 
 func (j *Jumanpp) AnalyzeLine(line string) (morphemes []Morpheme) {
-	if len(line)>=3 && line[:2] == "# " {
+	for len(line)>=3 && line[:2] == "# " {
 	/*
 		fmt.Fprintf(os.Stdout, "skipping \"# \"-prefixed line: %q\n", line)
 		return
