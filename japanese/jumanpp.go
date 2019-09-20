@@ -51,16 +51,25 @@ func trimSuffixだIfItIsAppropriateAdjective(fields []string) {
 }
 
 func (j *Jumanpp) AnalyzeLine(line string) (morphemes []Morpheme) {
-	{
-		terminatedLine := make([]byte, len(line)+1)
-		terminatedLine[copy(terminatedLine, line)] = '\n'
-		j.inPipe.Write(terminatedLine)
+	if len(line)>=3 && line[:2] == "# " {
+	/*
+		fmt.Fprintf(os.Stdout, "skipping \"# \"-prefixed line: %q\n", line)
+		return
+	*/
+		line = line[2:]
 	}
+	terminatedLine := make([]byte, len(line)+1)
+	terminatedLine[copy(terminatedLine, line)] = '\n'
+	j.inPipe.Write(terminatedLine)
 	sc := bufio.NewScanner(j.outPipe)
 	見出し語, 活用形 := "", ""
 	for sc.Scan() {
 		line := sc.Text()
 		if line == "EOS" {break}
+		if line == "# ERROR" {
+			fmt.Fprintf(os.Stdout, "[# ERROR] with:\n%s\n", terminatedLine)
+			continue
+		}
 		fields := func(n int) []string {
 			if line[0] == ' ' {
 				return append([]string{" ", " ", " "},
