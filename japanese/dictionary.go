@@ -74,8 +74,11 @@ func (d *Dictionary) Translate(morphemes ...Morpheme) (translation string, ok bo
 			return strings.TrimPrefix(morpheme[0], strings.TrimSuffix(morpheme[1], "い"))
 			//fmt.Fprintf(os.Stdout, "[%q, %q] translation: %q\n", morpheme[0], morpheme[1], translation)
 		case strings.Contains(morpheme[3], "動詞"):
-			if len(morphemes) > 1 && morphemes[1][1]=="する" {
-				return ""
+			if len(morphemes) > 1 {
+				switch morphemes[1][1] {
+				case "する", "できる":
+					return ""
+				}
 			}
 			switch morpheme[4] {
 			case "タ形": // past
