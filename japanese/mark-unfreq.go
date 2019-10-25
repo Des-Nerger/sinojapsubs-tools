@@ -2,6 +2,7 @@ package main
 import (
 	"bufio"
 	"errors"
+	"flag"
 	"fmt"
 	"os"
 	"regexp"
@@ -33,6 +34,12 @@ func min(a, b int) int {
 
 func main() {
 	defer os.Exit(0)
+	var append見出し語 bool
+	flag.BoolVar(&append見出し語,
+		"append-見出し語", true,
+		`when marking, append 見出し語 (after "|") when it's different from 表層形`,
+	)
+	flag.Parse()
 	frequentWordsSet := map[string]struct{}{}
 	{
 		stdinSc := bufio.NewScanner(os.Stdin)
@@ -46,8 +53,8 @@ func main() {
 			frequentWordsSet[line] = struct{}{}
 		}
 	}
-	inputFileName := os.Args[1]
-	dictionary := new(Dictionary).Init(os.Args[2])
+	inputFileName := flag.Arg(0)
+	dictionary := new(Dictionary).Init(flag.Arg(1))
 	subs, err := astisub.OpenFile(inputFileName); fatalCheck(err)
 	func() {
 		j := Jumanpp{Path: "/opt/jumanpp/bin/jumanpp"}
@@ -77,7 +84,7 @@ func main() {
 							}
 							sb.WriteString("<" + morpheme[0] +
 								(func() string {
-									if morpheme[0] != morpheme[1] {
+									if append見出し語 && morpheme[0] != morpheme[1] {
 										//fmt.Fprintf(os.Stdout, "%q\n", morpheme)
 										return "|" + morpheme[1]
 									}
