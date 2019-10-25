@@ -38,7 +38,7 @@ func main() {
 	j.Start()
 	defer j.Wait()
 
-	bw := bufio.NewWriterSize(os.Stdout, 1)
+	bw := bufio.NewWriter(os.Stdout)
 	defer bw.Flush()
 	lastUsedReadings := map[string]string{}
 	sc := bufio.NewScanner(os.Stdin)
