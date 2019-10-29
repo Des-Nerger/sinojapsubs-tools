@@ -5,6 +5,8 @@ import (
 	"io"
 	"os"
 	"unicode"
+
+	. "github.com/Des-Nerger/sinojapsubs-tools/commonrangetables"
 )
 
 func main() {

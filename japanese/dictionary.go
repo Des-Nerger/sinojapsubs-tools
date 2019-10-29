@@ -7,6 +7,8 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	. "github.com/Des-Nerger/sinojapsubs-tools/commonrangetables"
 )
 
 type Dictionary map[string]string

@@ -9,6 +9,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/Des-Nerger/gonlpir"
+	. "github.com/Des-Nerger/sinojapsubs-tools/commonrangetables"
 )
 
 type Dictionary struct {

@@ -1,4 +1,4 @@
-package main
+package commonrangetables
 
 import (
 	"unicode"
@@ -18,7 +18,7 @@ var (
 	AlphaNum = &unicode.RangeTable{R16: append(AsciiAlphaNum.R16, FullwidthAlphaNum.R16...)}
 )
 
-func InitLatinOffsets(rangeTables ...*unicode.RangeTable) {
+func initLatinOffsets(rangeTables ...*unicode.RangeTable) {
 	for _, rangeTable := range rangeTables {
 		for _, range16 := range rangeTable.R16 {
 			if range16.Hi > unicode.MaxLatin1 {
@@ -30,5 +30,5 @@ func InitLatinOffsets(rangeTables ...*unicode.RangeTable) {
 }
 
 func init() {
-	InitLatinOffsets(AsciiAlphaNum, FullwidthAlphaNum, AlphaNum)
+	initLatinOffsets(AsciiAlphaNum, FullwidthAlphaNum, AlphaNum)
 }
