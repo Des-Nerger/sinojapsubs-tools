@@ -3,7 +3,8 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"runtime"
+	//"runtime"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -17,48 +18,38 @@ func init() {
 
 func fatalCheck(err error) {
 	if err != nil {
+	/*
 		fmt.Fprintln(os.Stdout, err)
-		//os.Exit(1)
 		runtime.Goexit()
+	*/
+		//os.Exit(1)
+		panic(err)
 	}
 }
 
 func main() {
-	defer os.Exit(0)
+	//defer os.Exit(0)
 	inSubs, err := astisub.OpenFile(os.Args[1]); fatalCheck(err)
 	bw := bufio.NewWriter(os.Stderr)
 	bw.WriteString(`<head>
 	<meta charset="utf-8"/>
 	<style>
-		::-moz-selection {
-			/* color: #9ab87c; */
-			color: #99b77b;
-			background: #9ab87cfe;
-		}
-		::selection {
-			/* color: #9ab87c; background: #9ab87cfe; */
-			color: #99b77b; background: #9ab87cfe;
-			/* color: #0a66d8; background: #0b67d9fe; */
-		}
+		::-moz-selection {background: #9ab87cfe;}
+		::selection {background: #9ab87cfe;}
 		body {
-		  font-size: 20px;
-		  /* background-color: #f4f4f4; */
+		  font-size: 24px;
 		  color: #dcddde; background-color: #36393f;
 		}
-		span {
-			/* color: #d0d0d0; background-color: #d0d0d0; */
+		span.i {
 			color: #202225; background-color: #202225;
 		}
+		span.i::-moz-selection {color: #99b77b;}
+		span.i::selection {color: #99b77b;}
 		span.h {
-			/* color: #ffff00; background-color: #ffff00; */
-			color: #b58900; background-color: #b58900;
+			background-color: #b58900;
 		}
-		span.h::-moz-selection {
-			color: #9ab87b;
-		}
-		span.h::selection {
-			color: #9ab87b;
-			/* color: #0b67d8; */
+		span.i.h {
+			color: #b58900;
 		}
 	</style>
 </head>
@@ -98,7 +89,7 @@ func main() {
 	writtenItemsCount := 0
 	outSubs := astisub.NewSubtitles()
 	for _, inItem := range inSubs.Items {
-		containsMarked := false
+		//containsMarkedOrUnhidden := false
 		for _, line := range inItem.Lines {
 			if len(line.Items) > 1 {
 				fmt.Fprintf(os.Stdout, "len(line.Items)==%v; skipping all of them\n", len(line.Items))
@@ -108,92 +99,104 @@ func main() {
 				fmt.Fprintln(os.Stdout)
 				continue
 			}
-			if strings.ContainsRune(line.Items[0].Text, '<') {
-				containsMarked = true
+		/*
+			if strings.ContainsAny(line.Items[0].Text, "<|") {
+				containsMarkedOrUnhidden = true
 				break
 			}
+		*/
 		}
-		if !containsMarked {continue}
+		//if !containsMarkedOrUnhidden {continue}
 		outItem := &astisub.Item{StartAt: inItem.StartAt, EndAt: inItem.EndAt}
 		writtenItemsCount++
-		writtenItemsCountString := fmt.Sprintf("%03d", writtenItemsCount)
+		writtenItemsCountString := strconv.Itoa(writtenItemsCount) //fmt.Sprintf("%03d", writtenItemsCount)
 		fmt.Fprintln(bw, writtenItemsCountString)
 		outItem.Lines = append(outItem.Lines, astisub.Line{Items: []astisub.LineItem{{Text: writtenItemsCountString}}})
 		for _, line := range inItem.Lines {
 			if len(line.Items) > 1 {continue}
-			const (
-				visible = iota
-				invisible
-				invisibleHighlighted
-				inAngleBrackets
-			)
-			state := visible
-			const (
-				invisibleSpanStart = "<span>"
-				invisibleHighlightedSpanStart = "<span class=h>"
-				spanEnd = "</span>"
-			)
-			shouldBeHidden := func (r rune) bool {
-				return unicode.In(r, /*unicode.Letter, unicode.Number,*/ unicode.Han, unicode.Hiragana, unicode.Katakana, )
+			lineText := line.Items[0].Text
+			if strings.HasPrefix(lineText, "#") {
+				fmt.Fprintln(bw, lineText)
+				outItem.Lines = append(outItem.Lines, astisub.Line{Items: []astisub.LineItem{{Text: lineText}}})
+				continue
 			}
-			lineBuilder := strings.Builder{}; lineBuilder.Grow(len(line.Items[0].Text))
-			for _, r := range line.Items[0].Text {
-				switch state {
-				case visible:
-					if r == '<' {
-						state = inAngleBrackets
-						bw.WriteString(invisibleHighlightedSpanStart)
-						continue
-					}
-					if shouldBeHidden(r) {
-						state = invisible
-						bw.WriteString(invisibleSpanStart)
-					}
-				case invisible:
-					if r == '<' {
-						state = inAngleBrackets
+			lineBuilder := strings.Builder{}; lineBuilder.Grow(len(lineText))
+			const (
+				invisibleSpanStart = `<span class=i>`
+				visibleHighlightedSpanStart = `<span class=h>`
+				invisibleHighlightedSpanStart = `<span class="i h">`
+				spanEnd = `</span>`
+			)
+			currentSpanStart := ""
+			inAngleBrackets := false
+			hideRunes := false
+			for _, r := range lineText {
+				if r=='|' {hideRunes = !hideRunes; continue}
+				hideRune := hideRunes && unicode.In(r, unicode.Han, /*unicode.Hiragana, unicode.Katakana,*/ unicode.Bopomofo, )
+				if inAngleBrackets {
+					if r=='>' {inAngleBrackets = false; continue}
+					switch currentSpanStart {
+					case "":
+						currentSpanStart = func() string {
+							if hideRune {return invisibleHighlightedSpanStart}
+							return visibleHighlightedSpanStart
+						} ()
+						bw.WriteString(currentSpanStart)
+					case invisibleSpanStart:
 						bw.WriteString(spanEnd)
-						bw.WriteString(invisibleHighlightedSpanStart)
-						continue
+						currentSpanStart = func() string {
+							if hideRune {return invisibleHighlightedSpanStart}
+							return visibleHighlightedSpanStart
+						} ()
+						bw.WriteString(currentSpanStart)
+					case visibleHighlightedSpanStart:
+						if hideRune {
+							bw.WriteString(spanEnd)
+							currentSpanStart = invisibleHighlightedSpanStart
+							bw.WriteString(currentSpanStart)
+						}
+					case invisibleHighlightedSpanStart:
+						if !hideRune {
+							bw.WriteString(spanEnd)
+							currentSpanStart = visibleHighlightedSpanStart
+							bw.WriteString(currentSpanStart)
+						}
 					}
-					if !shouldBeHidden(r) {
-						state = visible
+				} else {
+					//if r=='<' {inAngleBrackets = true; continue}
+					switch currentSpanStart {
+					case "":
+						if hideRune {
+							currentSpanStart = invisibleSpanStart
+							bw.WriteString(currentSpanStart)
+						}
+					case invisibleSpanStart:
+						if !hideRune {
+							bw.WriteString(spanEnd)
+							currentSpanStart = ""
+						}
+					case visibleHighlightedSpanStart, invisibleHighlightedSpanStart:
 						bw.WriteString(spanEnd)
-					}
-				case invisibleHighlighted:
-					if r == '<' {
-						state = inAngleBrackets
-						continue
-					}
-					bw.WriteString(spanEnd)
-					if shouldBeHidden(r) {
-						state = invisible
-						bw.WriteString(invisibleSpanStart)
-					} else {
-						state = visible
-					}
-				case inAngleBrackets:
-					if r == '>' {
-						state = invisibleHighlighted
-						continue
+						currentSpanStart = func() string {
+							if hideRune {return invisibleSpanStart}
+							return ""
+						} ()
+						bw.WriteString(currentSpanStart)
 					}
 				}
 				bw.WriteRune(r)
 				lineBuilder.WriteRune(func() rune {
-					switch state {
-					case visible: return r
-					case invisible: return '一'
-					case inAngleBrackets: return '口'
-					default: fallthrough; case invisibleHighlighted:
-						panic("unexpected state: " + string(state))
+					switch currentSpanStart {
+					case invisibleSpanStart: return '＿' // '■' '　' '￢' '一' '＝'
+					case invisibleHighlightedSpanStart: return '口'
+					default: fallthrough; case "", visibleHighlightedSpanStart: return r
 					}
 				} ())
 			}
-			switch state {
-			case inAngleBrackets:
-				fmt.Fprintf(os.Stdout, "unterminated '<' in %q\n", line.Items[0].Text)
-				fallthrough
-			case invisible, invisibleHighlighted:
+			if inAngleBrackets {
+				fmt.Fprintf(os.Stdout, "unterminated '<' in %q\n", lineText)
+			}
+			if currentSpanStart != "" {
 				bw.WriteString(spanEnd)
 			}
 			fmt.Fprintln(bw)
@@ -202,5 +205,7 @@ func main() {
 		fmt.Fprintln(bw)
 		outSubs.Items = append(outSubs.Items, outItem)
 	}
-	err = outSubs.Write(os.Args[2]); fatalCheck(err)
+	if len(os.Args) >= 3 {
+		err = outSubs.Write(os.Args[2]); fatalCheck(err)
+	}
 }

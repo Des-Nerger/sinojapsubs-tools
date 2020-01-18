@@ -34,7 +34,7 @@ var (
 )
 */
 
-type Morpheme [5]string
+type Morpheme [/*6*/]string
 
 func trimSuffixだIfItIsAppropriateAdjective(fields []string) {
 	switch  {
@@ -85,7 +85,7 @@ func (j *Jumanpp) AnalyzeLine(line string) (morphemes []Morpheme) {
 			continue
 		}
 		trimSuffixだIfItIsAppropriateAdjective(fields)
-		morphemes = append(morphemes, Morpheme{fields[0], fields[2], fields[3], fields[7], fields[9]})
+		morphemes = append(morphemes, Morpheme{fields[0], fields[2], fields[3], fields[7], fields[9], fields[1]})
 		見出し語, 活用形 = fields[2], fields[9]
 	}
 	return

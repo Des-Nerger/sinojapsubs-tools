@@ -8,6 +8,8 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/Des-Nerger/go-astisub"
 	"github.com/asticode/go-astilog"
@@ -39,6 +41,8 @@ func main() {
 		"append-見出し語", true,
 		`when marking, append 見出し語 (after "|") when it's different from 表層形`,
 	)
+	var outputFileName string
+	flag.StringVar(&outputFileName, "o", "", "")
 	flag.Parse()
 	frequentWordsSet := map[string]struct{}{}
 	{
@@ -74,6 +78,7 @@ func main() {
 				li := &line.Items[0]
 				morphemes := j.AnalyzeLine(li.Text)
 				for i, morpheme := range morphemes {
+					if !append見出し語 {morpheme[0] = unhideGrammarHiragana(morpheme)}
 					switch morpheme[2] {
 					default:
 						if _, ok := frequentWordsSet[morpheme[1]]; !ok {
@@ -103,10 +108,139 @@ func main() {
 			}
 		}
 	} ()
-	outputFileName := regexp.MustCompile(`^(.*/|)([^/]+)\.[^.]+$`).
-		ReplaceAllString(inputFileName, "$2.marked.srt")
-	if inputFileName == outputFileName {
-		fatalCheck(errors.New("inputFileName == outputFileName"))
+	if outputFileName == "" {
+		outputFileName = regexp.MustCompile(`^(.*/|)([^/]+)\.[^.]+$`).
+			ReplaceAllString(inputFileName, "$2.marked.srt")
+		if inputFileName == outputFileName {
+			fatalCheck(errors.New("inputFileName == outputFileName"))
+		}
 	}
 	err = subs.Write(outputFileName); fatalCheck(err)
+}
+
+func unhideGrammarHiragana(morpheme Morpheme) string {
+	unsuffixed := func() string {
+		switch {
+		case strings.HasPrefix(morpheme[3], "ナ形容詞"),
+		     morpheme[3]=="ナノ形容詞":
+			switch morpheme[2] {
+			case "助動詞", "接尾辞":
+				return ""
+			}
+			return morpheme[1]
+		case strings.HasPrefix(morpheme[3], "イ形容詞"):
+			switch morpheme[1] {
+			case "ない", "いい", "らしい":
+				return ""
+			}
+			return strings.TrimSuffix(morpheme[1], "い")
+		case strings.Contains(morpheme[3], "動詞"):
+			switch morpheme[2] {
+			case "接尾辞", "助動詞":
+				return ""
+			}
+			switch morpheme[1] {
+			case "する", "できる", "ある", "いる", "くる", "いく":
+				return ""
+			}
+			_, size := utf8.DecodeLastRuneInString(morpheme[1])
+			s := morpheme[1][:len(morpheme[1])-size]
+			r, size := utf8.DecodeLastRuneInString(s)
+			if len(s)==size || !strings.ContainsRune("えけげせてねべめれ", r) {return s}
+			return s[:len(s)-size]
+		default:
+			switch morpheme[2] {
+			case "特殊", "未定義語", "0":
+				return morpheme[0]
+			case "接尾辞":
+				if !allHiragana(morpheme[0]) {
+					return morpheme[0]
+				}
+				fallthrough
+			case "助詞", "接続詞", "助動詞", "判定詞":
+				return ""
+			case "連体詞":
+				s := morpheme[0]
+				for _, suffix := range 連体詞Suffixes {
+					if strings.HasSuffix(s, suffix) {
+						return s[:len(s)-len(suffix)]
+					}
+				}
+				return s
+			case "名詞":
+				s := morpheme[0]
+				switch s {
+				case "こと", "て", "ん":
+					return ""
+				}
+			/*
+				r, size := utf8.DecodeLastRuneInString(s)
+				if len(s)==size || !strings.ContainsRune("いきぎしちにびみり", r) {
+					return s
+				}
+				return s[:len(s)-size]
+			*/
+				for _, suffix := range 名詞Suffixes {
+					if strings.HasSuffix(s, suffix) {
+						return s[:len(s)-len(suffix)]
+					}
+				}
+				return s
+			case "指示詞":
+				s := morpheme[0]
+				switch s {
+				case "そういう":
+					return ""
+				}
+				for _, suffix := range 指示詞Suffixes {
+					if strings.HasSuffix(s, suffix) {
+						return s[:len(s)-len(suffix)]
+					}
+				}
+				return s
+			case "副詞":
+				s := morpheme[0]
+			/*
+				switch s {
+				case "なんて":
+					return ""
+				}
+			*/
+				for _, suffix := range 副詞Suffixes {
+					if strings.HasSuffix(s, suffix) {
+						return s[:len(s)-len(suffix)]
+					}
+				}
+				return s
+			case "感動詞":
+				switch morpheme[0] {
+				case "じゃ":
+					return ""
+				}
+			}
+			return morpheme[0]
+		}
+	} ()
+	return unsuffixed + func() string {
+		suffix := strings.TrimPrefix(morpheme[0], unsuffixed)
+		//fmt.Printf("%#v | %#v @@ %+v\n", unsuffixed, suffix, morpheme)
+		if suffix=="" {return ""}
+		return "|" + suffix + "|"
+	} ()
+}
+
+var (
+	名詞Suffixes = [...]string{"だ"}
+	連体詞Suffixes = [...]string{"が", "なる"}
+	指示詞Suffixes = [...]string{"に", "の", "な"}
+	副詞Suffixes = [...]string{"にも", "に", "らか", "ら", "で", "て"}
+)
+
+func allHiragana(s string) bool {
+	for _, r := range s {
+		if !unicode.In(r, unicode.Hiragana) {
+			return false
+		}
+	}
+	return true
 }
