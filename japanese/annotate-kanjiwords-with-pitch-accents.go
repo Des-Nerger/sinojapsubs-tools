@@ -8,6 +8,7 @@ import (
 	"os"
 	"regexp"
 	// "runtime"
+	"strconv"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -33,6 +34,7 @@ func fatalCheck(err error) {
 }
 
 type pitchAccentedReading [2]string
+const kanaRuneLen = 3
 
 func main() {
 	//defer os.Exit(0)
@@ -52,10 +54,25 @@ func main() {
 		}
 		defer file.Close()
 		scanner := bufio.NewScanner(file)
+		countMorae := func(s string) (count int) {
+			for _, r := range s {
+				switch r {
+				case 'ァ','ィ','ゥ','ェ','ォ',
+				     'ャ',    'ュ',    'ョ',
+				     'ヮ',
+				     '・':
+				//case 'ヵ','ヶ': fmt.Fprintf(os.Stderr, "+%v+\n", s); fallthrough
+				default:
+					count++
+				}
+			}
+			//if count<=3 && count != len(s)/kanaRuneLen {fmt.Fprintf(os.Stderr, "_%v_%v\n", s, count)}
+			return
+		}
 		for scanner.Scan() {
 			line := scanner.Text()
 			s := strings.Split(line, "\t")
-			if s[2]=="" {continue}
+			if s[2]=="" && countMorae(s[1])<3 {continue}
 			pitchAccentedReadings[s[0]] = append(pitchAccentedReadings[s[0]], pitchAccentedReading{s[1], s[2]})
 		}
 	} ()
@@ -91,12 +108,15 @@ func main() {
 	} ()
 
 	const (
-		irrelevant = iota
-		katakanaOrAsciiDigit
+		spaceOrNone = iota
+		katakana
+		digit
 		prefixHiragana
 		nonprefixHiragana
+		otherNonspace
 	)
 	var (
+		previousFirstRuneIsDigit bool
 		previousLastRuneKind int
 		morpheme Morpheme
 		sb = strings.Builder{}
@@ -105,47 +125,88 @@ func main() {
 		firstRune, _ := utf8.DecodeRuneInString(s)
 		lastRune, _ := utf8.DecodeLastRuneInString(s)
 		isPrefix := morpheme[2]=="接頭辞"
+		firstRuneIsDigit := false
 		for i, r := range [...]rune{firstRune, lastRune} {
 			runeKind := func() int {
 				switch {
-				case '0' <= r && r <= '9', unicode.In(r, unicode.Katakana):
-					return katakanaOrAsciiDigit
+				case unicode.IsSpace(r): return spaceOrNone
+				case unicode.In(r, unicode.Digit):
+					if i==0 {
+						firstRuneIsDigit = true
+					}
+					return digit
+				case unicode.In(r, unicode.Katakana): return katakana
 				case unicode.In(r, unicode.Hiragana):
 					if isPrefix {return prefixHiragana}
 					return nonprefixHiragana
 				}
-				return irrelevant
+				return otherNonspace
 			} ()
 			if i==1 {
+				previousFirstRuneIsDigit = firstRuneIsDigit
 				previousLastRuneKind = runeKind
 				continue
 			}
 			switch previousLastRuneKind {
 			case nonprefixHiragana:
 				switch runeKind {
-				case katakanaOrAsciiDigit, prefixHiragana:
+				case katakana, digit, prefixHiragana:
 					sb.WriteByte(' ')
 				}
-			case katakanaOrAsciiDigit:
+			case katakana:
 				switch runeKind {
-				case katakanaOrAsciiDigit:
+				case katakana:
 					sb.WriteRune('・')
-				case prefixHiragana:
+				case prefixHiragana, digit:
+					sb.WriteRune(' ')
+				}
+			case digit:
+				switch runeKind {
+				case katakana:
+					if !previousFirstRuneIsDigit {
+						sb.WriteRune('・')
+					}
+				case prefixHiragana, digit:
+					sb.WriteRune(' ')
+				}
+			/*
+			case prefixHiragana:
+				if runeKind==digit {
+					panic(fmt.Sprintf("hiragana prefix before digit: «%v» «%v»", sb.String(), s))
+				}
+			*/
+			case otherNonspace:
+				if runeKind==digit {
 					sb.WriteRune(' ')
 				}
 			}
+		/*
 			for j:=false; ; j=!j {
 				if hide {sb.WriteByte('|')}
 				if j {break}
 				sb.WriteString(s)
 			}
+		*/
+			sb.WriteString(func() string {
+				if !hide {return s}
+				return strings.Map(func(r rune) rune {
+					if unicode.Is(unicode.Han, r) {
+						return '＿'
+					}
+					return r
+				}, s)
+			} ())
 		}
 	}
 
 	jumanpp := Jumanpp{Path: "/opt/jumanpp/bin/jumanpp"}
 	jumanpp.Start()
 	defer jumanpp.Wait()
-	for _, item := range subs.Items {
+	eToU := map[string]string {"ね": "ぬ",
+		"え": "う", "て": "つ", "れ": "る", "け": "く",
+		"げ": "ぐ", "べ": "ぶ", "め": "む", "せ": "す",
+	}
+	for itemIndex, item := range subs.Items {
 		for i:=0; i<len(item.Lines); i++ {
 			line := &item.Lines[i]
 			if len(line.Items) > 1 {
@@ -157,19 +218,36 @@ func main() {
 				continue
 			}
 			sb.Reset()
-			previousLastRuneKind = irrelevant
+			previousFirstRuneIsDigit = false
+			previousLastRuneKind = spaceOrNone
 			li := &line.Items[0]
 			annotations := []string{"#"}
 			for _, morpheme = range jumanpp.AnalyzeLine(line.Items[0].Text) {
+			switchLabel:
 				switch morpheme[2] {
 				default:
 					if !contains(morpheme[1], unicode.Han) {break}
-					if _, ok := kanjiwordsAnnotationExceptions[morpheme[1]]; ok {break}
-					ps, ok := pitchAccentedReadings[morpheme[1]]
-					if !ok {break}
+					var (ps []pitchAccentedReading; ok bool) 
+					for j:=0;; j++ {
+						if _, ok = kanjiwordsAnnotationExceptions[morpheme[1]]; ok {break switchLabel}
+						ps, ok = pitchAccentedReadings[morpheme[1]]
+						if ok {
+							//if j==1 {fmt.Fprintf(os.Stderr, "used «%v»\n", morpheme[1])}
+							break
+						} //else {if j==1 {fmt.Fprintf(os.Stderr, "not used «%v»\n", morpheme[1])}}
+						if j==1 || !strings.Contains(morpheme[3], "動詞") {break /*switchLabel*/} //
+						penultimate := len(morpheme[1]) - 2*kanaRuneLen
+						u, ok := eToU[morpheme[1][penultimate:penultimate+kanaRuneLen]]
+						if !ok {break /*switchLabel*/} //
+						fmt.Fprintf(os.Stderr, "deconjugating %v into ", morpheme[1])
+						morpheme[1] = morpheme[1][:penultimate] + u
+						fmt.Fprintln(os.Stderr, morpheme[1])
+					}
 					conjugated := conjugatePitchAccentedReadingsAsIn(morpheme, ps)
+					if conjugated == "" {break}
+					//if morpheme[1]=="駆ける" {fmt.Fprintf(os.Stderr, "%q\n%q\n", ps, conjugated)}
 					writeDelimitString(func() (string, bool) {
-						if conjugated==morpheme[0] || len(ps)==1 {
+						if strings.Count(conjugated, "/")==0 {
 							return conjugated, false
 						}
 						annotations = append(annotations, conjugated)
@@ -188,6 +266,10 @@ func main() {
 				i++
 			}
 		}
+		item.Lines = append(
+			[]astisub.Line{{Items: []astisub.LineItem{{Text: strconv.Itoa(itemIndex+1)}}}},
+			item.Lines...,
+		)
 	}
 
 	if outputFilename == "" {
@@ -213,20 +295,31 @@ func insert(lines []astisub.Line, i int, line astisub.Line) []astisub.Line {
 	return lines
 }
 
+
+var workaroundRegexp = regexp.MustCompile("[ー～]っ?$") //"ーっ" "～っ"
 func conjugatePitchAccentedReadingsAsIn(m Morpheme, ps []pitchAccentedReading) string {
-	const kanaRuneLen = 3
-	dictFormSuffixLen := func () int {
+	var workaround string
+	dictFormSuffixLen := kanaRuneLen * func () int {
 		switch {
-		case strings.HasPrefix(m[3], "イ形容詞"), strings.Contains(m[3], "動詞"):
-			return kanaRuneLen
+		case strings.Contains(m[3], "動詞"):
+			workaround = workaroundRegexp.FindString(m[0])
+			m[0] = m[0][:len(m[0])-len(workaround)]
+			fallthrough
+		case strings.HasPrefix(m[3], "イ形容詞"):
+			return 1
+		case m[3]=="タル形容詞":
+			return 2
 		}
 		return 0
 	} ()
+	//fmt.Fprintf(os.Stderr, "%v ||| %v\n", m, dictFormSuffixLen)
 	conjugatedSuffix := m[0][len(m[1])-dictFormSuffixLen:]
-	prefixLen := len(m[5])-len(conjugatedSuffix)
+	prefixLen := len(m[5])-len(conjugatedSuffix) /* may work dirty,
+		as in [起ーきーろー 起きる 動詞 母音動詞 命令形 おきろ] ||| 3
+	*/
 	conjugatedReading := kanaconv.HiraganaToKatakana(m[5][:prefixLen]) + m[5][prefixLen:]
 
-	prefixes := make([]string, len(ps))
+	prefixes := make([]string, len(ps), len(ps)+1)
 	jumanppChosenIndex := -1
 	for i, p := range ps {
 		kana := p[0]
@@ -236,8 +329,17 @@ func conjugatePitchAccentedReadingsAsIn(m Morpheme, ps []pitchAccentedReading) s
 		} 
 		prefixes[i] = prefix + p[1]
 	}
-	if jumanppChosenIndex==-1 {return m[0]}
-	last := len(prefixes)-1
-	prefixes[last], prefixes[jumanppChosenIndex] = prefixes[jumanppChosenIndex], prefixes[last]
-	return strings.Join(prefixes, "/") + conjugatedSuffix
+	if jumanppChosenIndex==-1 {
+		//return m[0]
+		jumanppChosenPrefix := conjugatedReading[:prefixLen]
+		if !contains(jumanppChosenPrefix, unicode.Han) {
+			prefixes = append(prefixes, jumanppChosenPrefix)
+		}
+	} else {
+		last := len(prefixes)-1
+		prefixes[last], prefixes[jumanppChosenIndex] = prefixes[jumanppChosenIndex], prefixes[last]
+	}
+	return strings.Join(prefixes, "/") +
+		func() string {if len(prefixes)==1 || conjugatedSuffix=="" {return ""}; return "・"} () +
+		conjugatedSuffix + workaround
 }

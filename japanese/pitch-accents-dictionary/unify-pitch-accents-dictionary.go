@@ -77,6 +77,32 @@ func main() {
 		}
 	} ()
 
+	backupPitchAccents := map[[2]string][]string{}
+	{
+		contains := func(strings []string, string string) bool {
+			for _, s := range strings {
+				if s == string {return true}
+			}
+			return false
+		}
+		scanner := bufio.NewScanner(os.Stdin)
+		for scanner.Scan() {
+			f := strings.Split(scanner.Text(), ",")
+			if f[5] == "固有名詞" {continue}
+			p := strings.SplitN(f[13], "/", 2)[0]
+			if p == "*" {continue}
+			key := [...]string{f[0], f[11]}
+			v, ok := unifiedDict[key]
+			if ok && len(v.pitchAccents)==0 {
+				if len(p)>=2 {p="{"+p+"}"}
+				pitchAccents := backupPitchAccents[key]
+				if !contains(pitchAccents, p) {
+					backupPitchAccents[key] = append(pitchAccents, p)
+				}
+			}
+		}
+	}
+
 	removeAdjacentDuplicates := func(ss []string) []string {
 		i := 0
 		for j:=i+1; j<len(ss); j++ {
@@ -95,7 +121,11 @@ func main() {
 		bw.WriteByte('\t')
 		{
 			p := v.pitchAccents
-			if len(p) > 1 {
+			switch len(p) {
+			case 0:
+				p = []string{strings.Join(backupPitchAccents[k], ",")}
+			case 1:
+			default:
 				fmt.Fprintf(os.Stderr, "%v --> ", p)
 				p = removeAdjacentDuplicates(p)
 				if len(p)>1 {os.Stderr.WriteString("!!!!!!!!!!!!!!!!!!!!!!!!!!!!! ")}

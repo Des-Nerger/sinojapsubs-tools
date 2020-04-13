@@ -76,7 +76,7 @@ func main() {
 		for _, r := range line {
 			switch {
 			case unicode.IsSpace(r):
-			case r=='・', r=='ー', unicode.In(r, unicode.Hiragana, unicode.Katakana):
+			case r=='・', r=='ー', /*r=='ﾞ', r=='ﾟ',*/ unicode.In(r, unicode.Hiragana, unicode.Katakana):
 				kanaBuilder.WriteRune(r)
 			default:
 				pitchAccentBuilder.WriteRune(func() rune {
@@ -87,7 +87,7 @@ func main() {
 				} ())
 			}
 		}
-		katakana := kanaconv.HiraganaToKatakana(kanaBuilder.String())
+		katakana := kanaconv.HiraganaToKatakana( /*kanaconv.HankakuToZenkaku*/(kanaBuilder.String()) )
 		pitchAccent := pitchAccentBuilder.String()
 		//fmt.Fprintf(os.Stderr, "\"%v\", \"%v\"\n", katakana, pitchAccent)
 

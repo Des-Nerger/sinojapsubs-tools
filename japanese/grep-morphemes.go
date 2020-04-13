@@ -40,7 +40,7 @@ func main() {
 					switch morpheme[2] {
 					case "特殊", "未定義語", "0": // Do nothing
 					default:
-						if re.MatchString(morpheme[1]) {
+						if re.MatchString(morpheme[0]) {
 							fmt.Fprintf(os.Stdout, "%v:\n%v\n\n", arg, lineString)
 						}
 					}
