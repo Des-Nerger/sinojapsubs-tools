@@ -304,6 +304,7 @@ func conjugatePitchAccentedReadingsAsIn(m Morpheme, ps []pitchAccentedReading) s
 		case strings.Contains(m[3], "動詞"):
 			workaround = workaroundRegexp.FindString(m[0])
 			m[0] = m[0][:len(m[0])-len(workaround)]
+			switch m[3] {case "ザ変動詞", "サ変動詞": return 2}
 			fallthrough
 		case strings.HasPrefix(m[3], "イ形容詞"):
 			return 1

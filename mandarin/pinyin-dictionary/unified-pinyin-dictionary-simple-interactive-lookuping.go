@@ -77,9 +77,17 @@ func main() {
 					if e.lineNumber>lastFirstFileLineNumber {break}
 					foundInFirstFile = true
 				}
-				fmt.Printf("%7v  %-10v  %v\n", e.lineNumber, e.hanzis, e.definition)
+				if e.lineNumber>lastFirstFileLineNumber {
+					fmt.Printf("%v ", e.hanzis)
+				} else { 
+					fmt.Printf("%7v  %-10v  %v\n", e.lineNumber, e.hanzis, e.definition)
+				}
 			}
-			if printMore || foundInFirstFile {break}
+			if printMore {
+				fmt.Println()
+				break
+			}
+			if foundInFirstFile {break}
 			printMore = true
 		}
 	}
