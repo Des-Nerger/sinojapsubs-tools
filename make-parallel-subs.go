@@ -1,5 +1,6 @@
 package main
 import (
+	"flag"
 	"fmt"
 	"os"
 	"sort"
@@ -12,12 +13,19 @@ import (
 func init() {astilog.SetLogger(astilog.New(astilog.Configuration{Verbose: true}))}
 
 func main() {
+	fillerLine := func() astisub.Line {
+		var filler string
+		flag.StringVar(&filler, "filler", ".", "")
+		flag.Parse()
+		return astisub.Line{Items: []astisub.LineItem{{Text: filler}}}
+	} ()
+
 	var err error
 	panicCheck := func() {if err != nil {panic(err)}}
 
 	inSubs := []*astisub.Subtitles{}
 	maxLinesPerItem := []int{}
-	for i, inFilename := range os.Args[1:len(os.Args)-1] {
+	for i, inFilename := range flag.Args()[:flag.NArg()-1] {
 		inSubs = append(inSubs, nil); maxLinesPerItem = append(maxLinesPerItem, 0)
 		inSubs[i], err = astisub.OpenFile(inFilename); panicCheck()
 		for j:=0; j<len(inSubs[i].Items); {
@@ -77,10 +85,10 @@ func main() {
 	toggle := func(i, requestedJ int) {
 		j, ok := activeItems[i]
 		if !ok {activeItems[i] = requestedJ; return}
-		if j != requestedJ {panic(fmt.Sprintf("%v: %v overlaps %v", os.Args[1+i], j+1, requestedJ+1))}
+		if j != requestedJ {panic(fmt.Sprintf("%v: %v overlaps %v\n%v\n-------\n%v\n\n",
+			flag.Arg(i), j+1, requestedJ+1, inSubs[i].Items[j], inSubs[i].Items[requestedJ]))}
 		delete(activeItems, i)
 	}
-	fillerLine := astisub.Line{Items: []astisub.LineItem{{Text: "."}}}
 	for _, sp := range sps {
 		t := extractTime(sp)
 		if len(activeItems) > 0 {
@@ -109,5 +117,5 @@ func main() {
 			outSubs.Items = append(outSubs.Items, item)
 		}
 	}
-	err = outSubs.Write(os.Args[len(os.Args)-1]); panicCheck()
+	err = outSubs.Write(flag.Arg(flag.NArg()-1)); panicCheck()
 }

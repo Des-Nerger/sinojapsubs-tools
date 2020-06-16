@@ -53,9 +53,7 @@ func main() {
 
 		for _, item := range subs.Items {
 			itemString := item.String()
-			locs := append(unifyAdjacent( keywords.FindAllStringIndex(itemString, -1) ),
-				[]int{maxInt, maxInt},
-			)
+			//FLCVR: locs := append(unifyAdjacent( keywords.FindAllStringIndex(itemString, -1) ), []int{maxInt, maxInt})
 			results := nlpir.ParagraphProcessA(itemString, true)
 			sb := strings.Builder{}
 			processedBytesCount := 0
@@ -65,10 +63,10 @@ func main() {
 					sb.WriteString(result.Word)
 					previousWasPinyin = false
 				} else {
-					if fullyCoveredBy(&locs, processedBytesCount, len(result.Word)) {
-						//sb.WriteByte('|')
+					if keywords.MatchString(result.Word) /*FLCVR: fullyCoveredBy(&locs, processedBytesCount, len(result.Word))*/ {
+						sb.WriteByte('<')
 						sb.WriteString(result.Word)
-						//sb.WriteByte('|')
+						sb.WriteByte('>')
 						previousWasPinyin = false
 					} else if pinyin, ok := pinyinDictionary[result.Word]; ok {
 						if previousWasPinyin {sb.WriteByte(' ')}
@@ -100,6 +98,7 @@ func main() {
 	FatalCheck(subs.Write(outputFileName))
 }
 
+/*FLCVR:
 func unifyAdjacent(locs [][]int) [][]int {
 	for i:=1; i<len(locs); {
 		if locs[i-1][1] == locs[i][0] {
@@ -118,3 +117,4 @@ func fullyCoveredBy(locs *[][]int, start, length int) bool {
 	}
 	return (*locs)[0][0] <= start && start+length <= (*locs)[0][1]
 }
+//*/

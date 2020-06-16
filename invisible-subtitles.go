@@ -1,6 +1,6 @@
 package main
 import (
-	//BW: "bufio"
+	"bufio" //BW:
 	"fmt"
 	"os"
 	//"runtime"
@@ -30,8 +30,9 @@ func fatalCheck(err error) {
 func main() {
 	//defer os.Exit(0)
 	inSubs, err := astisub.OpenFile(os.Args[1]); fatalCheck(err)
-/*BW:
+//*BW:
 	bw := bufio.NewWriter(os.Stderr)
+	const highlightColor = `#ffad00`
 	bw.WriteString(`<head>
 	<meta charset="utf-8"/>
 	<style>
@@ -47,7 +48,8 @@ func main() {
 		span.i::-moz-selection {color: #99b77b;}
 		span.i::selection {color: #99b77b;}
 		span.h {
-			background-color: #b58900;
+			//background-color: #b58900;
+			color: `+highlightColor+`;
 		}
 		span.i.h {
 			color: #b58900;
@@ -87,7 +89,7 @@ func main() {
 `)
 		bw.Flush()
 	} ()
-*/
+//*/
 	writtenItemsCount := 0
 	outSubs := astisub.NewSubtitles()
 	for _, inItem := range inSubs.Items {
@@ -112,13 +114,13 @@ func main() {
 		outItem := &astisub.Item{StartAt: inItem.StartAt, EndAt: inItem.EndAt}
 		writtenItemsCount++
 		writtenItemsCountString := strconv.Itoa(writtenItemsCount) //fmt.Sprintf("%03d", writtenItemsCount)
-		//BW: fmt.Fprintln(bw, writtenItemsCountString)
+		fmt.Fprintln(bw, writtenItemsCountString) //BW:
 		outItem.Lines = append(outItem.Lines, astisub.Line{Items: []astisub.LineItem{{Text: writtenItemsCountString}}})
 		for _, line := range inItem.Lines {
 			if len(line.Items) > 1 {continue}
 			lineText := line.Items[0].Text
 			if strings.HasPrefix(lineText, "#") {
-				//BW: fmt.Fprintln(bw, lineText)
+				fmt.Fprintln(bw, lineText) //BW:
 				outItem.Lines = append(outItem.Lines, astisub.Line{Items: []astisub.LineItem{{Text: lineText}}})
 				continue
 			}
@@ -128,6 +130,7 @@ func main() {
 				visibleHighlightedSpanStart = `<span class=h>`
 				invisibleHighlightedSpanStart = `<span class="i h">`
 				spanEnd = `</span>`
+				fontEnd = `</font>`
 			)
 			currentSpanStart := ""
 			inAngleBrackets := false
@@ -143,50 +146,52 @@ func main() {
 							if hideRune {return invisibleHighlightedSpanStart}
 							return visibleHighlightedSpanStart
 						} ()
-						//BW: bw.WriteString(currentSpanStart)
+						bw.WriteString(currentSpanStart) //BW:
+						lineBuilder.WriteString(`<font color="` + highlightColor + `">`)
 					case invisibleSpanStart:
-						//BW: bw.WriteString(spanEnd)
+						bw.WriteString(spanEnd) //BW:
 						currentSpanStart = func() string {
 							if hideRune {return invisibleHighlightedSpanStart}
 							return visibleHighlightedSpanStart
 						} ()
-						//BW: bw.WriteString(currentSpanStart)
+						bw.WriteString(currentSpanStart) //BW:
 					case visibleHighlightedSpanStart:
 						if hideRune {
-							//BW: bw.WriteString(spanEnd)
+							bw.WriteString(spanEnd) //BW:
 							currentSpanStart = invisibleHighlightedSpanStart
-							//BW: bw.WriteString(currentSpanStart)
+							bw.WriteString(currentSpanStart) //BW:
 						}
 					case invisibleHighlightedSpanStart:
 						if !hideRune {
-							//BW: bw.WriteString(spanEnd)
+							bw.WriteString(spanEnd) //BW:
 							currentSpanStart = visibleHighlightedSpanStart
-							//BW: bw.WriteString(currentSpanStart)
+							bw.WriteString(currentSpanStart) //BW:
 						}
 					}
 				} else {
-					//if r=='<' {inAngleBrackets = true; continue}
+					if r=='<' {inAngleBrackets = true; continue} //BW:
 					switch currentSpanStart {
 					case "":
 						if hideRune {
 							currentSpanStart = invisibleSpanStart
-							//BW: bw.WriteString(currentSpanStart)
+							bw.WriteString(currentSpanStart) //BW:
 						}
 					case invisibleSpanStart:
 						if !hideRune {
-							//BW: bw.WriteString(spanEnd)
+							bw.WriteString(spanEnd) //BW:
 							currentSpanStart = ""
 						}
 					case visibleHighlightedSpanStart, invisibleHighlightedSpanStart:
-						//BW: bw.WriteString(spanEnd)
+						bw.WriteString(spanEnd) //BW:
+						lineBuilder.WriteString(fontEnd)
 						currentSpanStart = func() string {
 							if hideRune {return invisibleSpanStart}
 							return ""
 						} ()
-						//BW: bw.WriteString(currentSpanStart)
+						bw.WriteString(currentSpanStart) //BW:
 					}
 				}
-				//BW: bw.WriteRune(r)
+				bw.WriteRune(r) //BW:
 				lineBuilder.WriteRune(func() rune {
 					switch currentSpanStart {
 					case invisibleSpanStart: return '＿' // '■' '　' '￢' '一' '＝'
@@ -199,12 +204,13 @@ func main() {
 				fmt.Fprintf(os.Stdout, "unterminated '<' in %q\n", lineText)
 			}
 			if currentSpanStart != "" {
-				//BW: bw.WriteString(spanEnd)
+				bw.WriteString(spanEnd) //BW:
+				lineBuilder.WriteString(fontEnd)
 			}
-			//BW: fmt.Fprintln(bw)
+			fmt.Fprintln(bw) //BW:
 			outItem.Lines = append(outItem.Lines, astisub.Line{Items: []astisub.LineItem{{Text: lineBuilder.String()}}})
 		}
-		//BW: fmt.Fprintln(bw)
+		fmt.Fprintln(bw) //BW:
 		outSubs.Items = append(outSubs.Items, outItem)
 	}
 	if len(os.Args) >= 3 {

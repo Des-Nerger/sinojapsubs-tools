@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"sort"
 	"strings"
 	"unicode"
 
@@ -123,7 +124,8 @@ func main() {
 			p := v.pitchAccents
 			switch len(p) {
 			case 0:
-				p = []string{strings.Join(backupPitchAccents[k], ",")}
+				b := backupPitchAccents[k]; sort.Strings(b)
+				p = []string{strings.Join(b, ",")}
 			case 1:
 			default:
 				fmt.Fprintf(os.Stderr, "%v --> ", p)

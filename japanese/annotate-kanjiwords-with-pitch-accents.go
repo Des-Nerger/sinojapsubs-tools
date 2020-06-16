@@ -206,6 +206,7 @@ func main() {
 		"え": "う", "て": "つ", "れ": "る", "け": "く",
 		"げ": "ぐ", "べ": "ぶ", "め": "む", "せ": "す",
 	}
+	//UNEXOC: unexceptedKanjiWordsOccurences := map[string]int{}
 	for itemIndex, item := range subs.Items {
 		for i:=0; i<len(item.Lines); i++ {
 			line := &item.Lines[i]
@@ -230,6 +231,7 @@ func main() {
 					var (ps []pitchAccentedReading; ok bool) 
 					for j:=0;; j++ {
 						if _, ok = kanjiwordsAnnotationExceptions[morpheme[1]]; ok {break switchLabel}
+						//UNEXOC: unexceptedKanjiWordsOccurences[morpheme[1]]++; break switchLabel
 						ps, ok = pitchAccentedReadings[morpheme[1]]
 						if ok {
 							//if j==1 {fmt.Fprintf(os.Stderr, "used «%v»\n", morpheme[1])}
@@ -272,6 +274,7 @@ func main() {
 		)
 	}
 
+	//UNEXOC: for k,v := range unexceptedKanjiWordsOccurences {fmt.Fprintf(os.Stdout, "%v\t%v\n", v, k)}
 	if outputFilename == "" {
 		outputFilename = regexp.MustCompile(`^(.*/|)([^/]+)\.[^.]+$`).
 			ReplaceAllString(inputFilename, "$2.anoted.srt")
@@ -306,7 +309,11 @@ func conjugatePitchAccentedReadingsAsIn(m Morpheme, ps []pitchAccentedReading) s
 			m[0] = m[0][:len(m[0])-len(workaround)]
 			switch m[3] {case "ザ変動詞", "サ変動詞": return 2}
 			fallthrough
-		case strings.HasPrefix(m[3], "イ形容詞"):
+		case strings.HasPrefix(m[3], "イ形容詞"): fallthrough
+		case m[2]=="連体詞" && func() bool {
+			r, _ := utf8.DecodeLastRuneInString(m[1])
+			return unicode.Is(unicode.Hiragana, r)
+		} ():
 			return 1
 		case m[3]=="タル形容詞":
 			return 2
@@ -337,8 +344,8 @@ func conjugatePitchAccentedReadingsAsIn(m Morpheme, ps []pitchAccentedReading) s
 			prefixes = append(prefixes, jumanppChosenPrefix)
 		}
 	} else {
-		last := len(prefixes)-1
-		prefixes[last], prefixes[jumanppChosenIndex] = prefixes[jumanppChosenIndex], prefixes[last]
+		prefixes = append(prefixes, prefixes[jumanppChosenIndex])
+		prefixes = append(prefixes[:jumanppChosenIndex], prefixes[jumanppChosenIndex+1:]...)
 	}
 	return strings.Join(prefixes, "/") +
 		func() string {if len(prefixes)==1 || conjugatedSuffix=="" {return ""}; return "・"} () +

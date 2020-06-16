@@ -99,7 +99,7 @@ func main() {
 				results = append(results, result{freq[e[1]], e})
 			}
 		}
-		sort.Slice(results, func(i, j int) bool {
+		sort.SliceStable(results, func(i, j int) bool {
 			return results[j].freq < results[i].freq
 		})
 		for _, r := range results {
