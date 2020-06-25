@@ -28,13 +28,14 @@ func main() {
 		case io.EOF: return
 		default: panic(err)
 		}
-		curIsHan := unicode.Is(unicode.Han, r)
-		if curIsHan {
-			if !prevWasHan {bw.WriteString(left)}
-		} else {
+		prevWasHan = func() bool {
+			if unicode.Is(unicode.Han, r) {
+				if !prevWasHan {bw.WriteString(left)}
+				return true
+			}
 			if prevWasHan {bw.WriteString(right)}
-		}
+			return false
+		} ()
 		bw.WriteRune(r)
-		prevWasHan = curIsHan
 	}
 }

@@ -1,0 +1,57 @@
+package main
+import (
+	"bufio"
+	"fmt"
+	"os"
+	"strings"
+	"unicode"
+
+	"github.com/Des-Nerger/sinojapsubs-tools/japanese/diff"
+	"github.com/miiton/kanaconv"
+	"github.com/shogo82148/go-mecab"
+)
+
+func main() {
+	panicCheck := func(err error) {if err != nil {panic(err)}}
+	tagger, err := mecab.New(map[string]string{"eos-format": "\x00"}); panicCheck(err); defer tagger.Destroy()
+
+	scanner, bw := bufio.NewScanner(os.Stdin), bufio.NewWriter(os.Stdout); defer bw.Flush()
+	contains := func(s string, rt *unicode.RangeTable) bool {
+		for _, r := range s {if unicode.Is(rt, r) {return true}}; return false
+	}
+	for scanner.Scan() {
+		line := scanner.Text()
+		if !contains(line, unicode.Han) {fmt.Fprintln(bw, line); continue}
+		result, err := tagger.Parse(line); panicCheck(err)
+		i := 0
+		for _, word := range strings.FieldsFunc(result, func(r rune)bool{return r=='\n'}) {
+			fields := strings.FieldsFunc(word, func(r rune)bool{return strings.ContainsRune(",\t", r)})
+			yomi := fields[len(fields)-2]
+			if !contains(fields[0], unicode.Han) || yomi=="*" {continue}
+			kanji, yomi := fields[0], kanaconv.KatakanaToHiragana(yomi)
+			kanjiStart := i + strings.Index(line[i:], kanji)
+			bw.WriteString(line[i:kanjiStart])
+			i = kanjiStart + len(kanji)
+			for parts, j := diff.Do(yomi,kanji), 0; j<len(parts); {
+				part := parts[j]
+				switch {
+				case part.Added:
+					j++
+					var yomi diff.Component
+					if j<len(parts) && parts[j].Removed {
+						yomi = parts[j]
+						j++
+					}
+					fmt.Fprintf(bw, /*"<ruby><rb>%v</rb><rp>(</rp><rt>%v</rt><rp>)</rp></ruby>"*/ "<ruby>%v<rt>%v</ruby>",
+				              part, yomi)
+				case part.Removed:
+					panic(fmt.Sprintf("unexpected \"removed\" component: %v\n", part))
+				default:
+					fmt.Fprint(bw, part)
+					j++
+				}
+			}
+		}
+		fmt.Fprintln(bw, line[i:])
+	}
+}
