@@ -26,7 +26,7 @@ func main() {
 		for _, line := range item.Lines {
 			lineText := line.Items[0].Text
 			//if containsOnly(lineText, ascii, unicode.Cyrillic) {newLines = append(newLines, line); continue}
-			newLineTexts := rubytagpolyfill.ToSpacefilledTwoLines(lineText, `{\fs32}`, `{\fs16}`)
+			newLineTexts := rubytagpolyfill.ToSpacefilledTwoLines(lineText, `{\fs30}`, `{\fs15}`)
 		/*
 			circumfix := func() string {
 				if len(newLineTexts)<=1 {return ""}

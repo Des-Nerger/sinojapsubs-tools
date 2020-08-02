@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Des-Nerger/go-astisub"
+	. "github.com/Des-Nerger/sinojapsubs-tools/ensure_go_duration_format"
 	"github.com/asticode/go-astilog"
 )
 
@@ -36,7 +37,7 @@ func main() {
 	subs, err := astisub.OpenFile(inputFilename); fatalCheck(err)
 	ds := []time.Duration{}
 	for _, arg := range flag.Args()[1:] {
-		duration, err := time.ParseDuration(arg); fatalCheck(err)
+		duration, err := time.ParseDuration(EnsureGoDurationFormat(arg)); fatalCheck(err)
 		ds = append(ds, duration)
 	}
 	subs.Sync(ds...)

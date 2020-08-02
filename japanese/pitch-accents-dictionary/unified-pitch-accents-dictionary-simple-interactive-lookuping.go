@@ -9,11 +9,11 @@ import (
 	"unicode"
 	//"unicode/utf8"
 
-	"github.com/miiton/kanaconv"
+	//"github.com/miiton/kanaconv"
 )
 
 func main() {
-	type entry [3]string
+	type entry struct {s [3]string; Type bool}
 	dict := map[string][]entry{}
 	func () {
 		file, err := os.Open(os.Args[1])
@@ -24,7 +24,8 @@ func main() {
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
 			s := strings.SplitN(scanner.Text(), "\t", 4)
-			dict[s[1]] = append(dict[s[1]], entry{s[2], s[0], s[3]})
+			dict[s[1]] = append(dict[s[1]], entry{[...]string{s[2], s[0], s[3]}, false})
+			if s[0]!=s[1] {dict[s[0]] = append(dict[s[0]], entry{[...]string{s[2], s[1], s[3]}, true})}
 		}
 	} ()
 
@@ -72,38 +73,35 @@ func main() {
 		katakana := kanaconv.HiraganaToKatakana(line[:i])
 		pitchAccent := strings.ToLowerSpecial(半角GraphAsLower全角AsUpper, line[i:]) //z2h.Replace(line[i:])
 	*/
-		kanaBuilder, pitchAccentBuilder := strings.Builder{}, strings.Builder{}
-		for _, r := range line {
+		kBuilder, restBuilder := strings.Builder{}, strings.Builder{}
+		for _, r := range strings.TrimLeftFunc(line, unicode.IsSpace) {
 			switch {
-			case unicode.IsSpace(r):
-			case r=='・', r=='ー', /*r=='ﾞ', r=='ﾟ',*/ unicode.In(r, unicode.Hiragana, unicode.Katakana):
-				kanaBuilder.WriteRune(r)
+			case r=='・', r=='ー', /*r=='ﾞ', r=='ﾟ',*/ unicode.In(r, unicode.Hiragana, unicode.Katakana, unicode.Han):
+				kBuilder.WriteRune(r)
+			case unicode.IsSpace(r): r=' '; fallthrough
 			default:
-				pitchAccentBuilder.WriteRune(func() rune {
-					if '！' <= r && r <= '～' {
-						return r - ('！' - '!')
-					}
+				restBuilder.WriteRune(func() rune {
+					if '！' <= r && r <= '～' {return r - ('！' - '!')}
 					return r
 				} ())
 			}
 		}
-		katakana := kanaconv.HiraganaToKatakana( /*kanaconv.HankakuToZenkaku*/(kanaBuilder.String()) )
-		pitchAccent := pitchAccentBuilder.String()
-		//fmt.Fprintf(os.Stderr, "\"%v\", \"%v\"\n", katakana, pitchAccent)
+		k := /*kanaconv.KatakanaToHiragana(kanaconv.HankakuToZenkaku(*/kBuilder.String()/*))*/
+		rest := strings.SplitN(restBuilder.String(), " ", 2)
 
-		entries := dict[katakana]
+		entries := dict[k]
 		type result struct{freq int; e entry}
 		results := make([]result, 0, len(entries))
 		for _, e := range entries {
-			if strings.Contains(e[0], pitchAccent) {
-				results = append(results, result{freq[e[1]], e})
+			if strings.Contains(e.s[0], rest[0]) && (len(rest)<=1 || strings.Contains(e.s[2], rest[1])) {
+				results = append(results, result{freq[func()string{if e.Type {return k}; return e.s[1]}()], e})
 			}
 		}
 		sort.SliceStable(results, func(i, j int) bool {
 			return results[j].freq < results[i].freq
 		})
 		for _, r := range results {
-			fmt.Printf("%-9v%-8v%-12v%v\n", r.e[0], r.freq, r.e[1], r.e[2])
+			fmt.Printf("%-9v%-8v%-12v%v\n", r.e.s[0], r.freq, r.e.s[1], r.e.s[2])
 		}
 	}
 }

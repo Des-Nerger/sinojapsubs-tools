@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	//"os"
 	"reflect"
 	"strconv"
 	"strings"

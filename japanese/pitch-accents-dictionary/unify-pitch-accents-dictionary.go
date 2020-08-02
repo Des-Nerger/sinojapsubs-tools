@@ -118,7 +118,7 @@ func main() {
 	for k, v := range unifiedDict {
 		bw.WriteString(k[0])
 		bw.WriteByte('\t')
-		bw.WriteString(k[1])
+		bw.WriteString(kanaconv.KatakanaToHiragana(k[1]))
 		bw.WriteByte('\t')
 		{
 			p := v.pitchAccents

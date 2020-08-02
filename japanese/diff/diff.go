@@ -47,14 +47,22 @@ func Do(oldString, newString string) []Component {
 	if oldString == "" { return []Component{{Value: []rune(newString), Added: true}} }
 	newRunes, oldRunes := []rune(newString), []rune(oldString)
 	oldString, newString = panicString, panicString //assurance to not use them anymore
+	commonSuffixComponents := []Component(nil); {
+		oldPos, newPos := len(oldRunes), len(newRunes)
+		for oldRunes[oldPos-1]==newRunes[newPos-1] {oldPos--; newPos--}
+		if oldPos<len(oldRunes) {
+			commonSuffixComponents = []Component{{Value: oldRunes[oldPos:]}}
+			oldRunes, newRunes = oldRunes[:oldPos], newRunes[:newPos]
+		}
+	}
 	newLen, oldLen := len(newRunes), len(oldRunes)
 	maxEditLength := newLen + oldLen
 	bestPath := map[int]*path {0: {newPos: -1}}
 
 	// Seed editLength = 0
 	oldPos := extractCommon(bestPath[0], newRunes, oldRunes, 0)
-	if bestPath[0].newPos+1 >= newLen && oldPos+1 >= oldLen {return bestPath[0].components}
-
+	if bestPath[0].newPos+1 >= newLen && oldPos+1 >= oldLen {
+		return append(bestPath[0].components, commonSuffixComponents...)}
 	for editLength:=1; editLength<=maxEditLength; editLength++ {
 		for diagonalPath:=-editLength; diagonalPath<=+editLength; diagonalPath+=2 {
 			addPath, removePath := bestPath[diagonalPath-1], bestPath[diagonalPath+1]
@@ -77,11 +85,12 @@ func Do(oldString, newString string) []Component {
 					Component{Value: newRunes[basePath.newPos:basePath.newPos+1], Added: true})
 			}
 			oldPos = extractCommon(basePath, newRunes, oldRunes, diagonalPath)
-			if basePath.newPos+1>=newLen && oldPos+1>=oldLen {return basePath.components}
+			if basePath.newPos+1>=newLen && oldPos+1>=oldLen {
+				return append(basePath.components, commonSuffixComponents...)}
 			bestPath[diagonalPath] = basePath
 		}
 	}
-	return nil
+	panic("reached end of diff.Do()")
 }
 
 func appendComponent(components []Component, component Component) []Component {
@@ -99,7 +108,15 @@ func appendComponent(components []Component, component Component) []Component {
 func extractCommon(basePath *path, newRunes, oldRunes []rune, diagonalPath int) int {
 	newLen, oldLen, newPos := len(newRunes), len(oldRunes), basePath.newPos
 	oldPos := newPos - diagonalPath
-	if len(basePath.components)==0 || !(basePath.components[len(basePath.components)-1].Added) {
+	switch l:=len(basePath.components); l {
+	default:
+		lastComponent := basePath.components[l-1]
+		if lastComponent.Added {break}
+		if lastComponent.Removed {
+			if l>=2 && len(lastComponent.Value) < len(basePath.components[l-2].Value) {break}
+		}
+		fallthrough
+	case 0:
 		for newPos+1<newLen && oldPos+1<oldLen && newRunes[newPos+1]==oldRunes[oldPos+1] {
 			newPos++; oldPos++
 			basePath.components = appendComponent(basePath.components, Component{Value: newRunes[newPos:newPos+1]})
