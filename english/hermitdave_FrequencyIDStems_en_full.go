@@ -23,7 +23,7 @@ func main() {
 		for i:=0;; {
 			var (r rune; size int)
 			switch sign(i-len(s[0])) {
-			case -1: r,size=utf8.DecodeRuneInString(s[0][i:]); if r==utf8.RuneError{panic(nil)}
+			case -1: r,size=utf8.DecodeRuneInString(s[0][i:]); if r==utf8.RuneError{panic("failed to decode rune")}
 			case  0: size=1
 			case +1: break innerFor
 			}

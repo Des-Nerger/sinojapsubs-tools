@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 	. "unsafe"
@@ -42,15 +43,18 @@ func (m MaxLinesPerItem) String() string {
 }
 
 func main() {
-	var autofixOverlaps bool
-	const doubleSizeBegin, doubleSizeEnd = `{\fs30}`, `{\fs15}`
-	fillerLine, fillerDoubleLine := func() (astisub.Line, astisub.Line) {
-		var filler string
-		flag.StringVar(&filler, "filler", ".", "")
-		flag.BoolVar(&autofixOverlaps, "autofixOverlaps", false, "")
-		flag.Parse()
+	var (lineCircumfix string; useMaxLinesPerItem bool; maxOverlapAutofixes int)
+	fillerLine, fillerDoubleLine, doubleLineCircumfix := func() (astisub.Line, astisub.Line, string) {
+		const invisibleBegin, invisibleEnd = `{\1a&HFF&\3a&HFF&}`, `{\1a&H00&\3a&H7F&}`
+		var filler string; flag.StringVar(&filler, "filler", invisibleBegin+"."+invisibleEnd, "")
+		flag.StringVar(&lineCircumfix, "lineCircumfix", invisibleBegin+"｜"+invisibleEnd, "")
+		flag.BoolVar(&useMaxLinesPerItem, "useMaxLinesPerItem", false, "")
+		flag.IntVar(&maxOverlapAutofixes, "maxOverlapAutofixes", 0, "")
+		flag.Parse(); maxOverlapAutofixes &^= -1<<(strconv.IntSize-1)
+		const doubleSizeBegin, doubleSizeEnd = `{\fs30}`, `{\fs15}`
 		return astisub.Line{Items: []astisub.LineItem{{Text: filler}}},
-		       astisub.Line{Items: []astisub.LineItem{{Text: doubleSizeBegin + filler + doubleSizeEnd}}}
+		       astisub.Line{Items: []astisub.LineItem{{Text: doubleSizeBegin + filler + doubleSizeEnd}}},
+		       doubleSizeBegin + lineCircumfix + doubleSizeEnd
 	} ()
 
 	var err error
@@ -122,9 +126,9 @@ func main() {
 	overlapFixesCount := 0
 	toggle := func(sp switchPoint) {
 		_, ok := activeItems[sp.i]
-		if !ok {activeItems[sp.i] = sp.j + boolToInt(!sp.on && autofixOverlaps); return}
+		if !ok {activeItems[sp.i] = sp.j + boolToInt(!sp.on && overlapFixesCount<maxOverlapAutofixes); return}
 		if sp.on {
-			if !autofixOverlaps { j:=activeItems[sp.i]
+			if !(overlapFixesCount<maxOverlapAutofixes) { j:=activeItems[sp.i]
 				panic(fmt.Sprintf("%v: %v overlaps %v\n%v\n-------\n%v\n\n",
 					flag.Arg(sp.i), j+1, sp.j+1, inSubs[sp.i].Items[j], inSubs[sp.i].Items[sp.j])) }
 			overlapFixesCount++
@@ -154,29 +158,28 @@ func main() {
 				if i!=len(inSubs)-1 {
 					item.Lines = append(item.Lines, lines...)
 				} else {
-					for _/*k*/, line := range lines {
+					for k, line := range lines {
 						c := func() string {
-							const (
-								circumfix = `{\1a&HFF&\3a&HFF&}｜{\1a&H00&\3a&H7F&}`
-								doubleCircumfix = doubleSizeBegin + circumfix + doubleSizeEnd
-							)
-							//if !m.isDouble(k) {return circumfix}
-							return doubleCircumfix
+							if useMaxLinesPerItem && !m.isDouble(k) {return lineCircumfix}
+							return doubleLineCircumfix
 						} ()
 						item.Lines = append(item.Lines, astisub.Line{Items: []astisub.LineItem{{Text: c+line.Items[0].Text+c}}})
 					}
 				}
-				linesToFill := int(m.count) - len(lines)
-				for k:=0; k<linesToFill; k++ {
-					item.Lines = append(item.Lines, func() astisub.Line {
-						if i!=len(inSubs)-1 /*!m.isDouble(len(lines)+k)*/ {return fillerLine}
-						return fillerDoubleLine
-					} ())
+				if len(inSubs) >= 2 {
+					linesToFill := int(m.count) - len(lines)
+					dontUseItAndIsntLastSub := !useMaxLinesPerItem && i!=len(inSubs)-1
+					for k:=0; k<linesToFill; k++ {
+						item.Lines = append(item.Lines, func() astisub.Line {
+							if useMaxLinesPerItem && !m.isDouble(len(lines)+k) || dontUseItAndIsntLastSub {return fillerLine}
+							return fillerDoubleLine
+						} ())
+					}
 				}
 			}
 			outSubs.Items = append(outSubs.Items, item)
 		}
 	}
-	if autofixOverlaps {fmt.Fprintf(os.Stderr, "%v overlap fixes have been applied\n", overlapFixesCount)}
+	if maxOverlapAutofixes!=0 {fmt.Fprintf(os.Stderr, "%v overlap fixes have been applied\n", overlapFixesCount)}
 	err = outSubs.Write(flag.Arg(flag.NArg()-1)); panicCheck()
 }
