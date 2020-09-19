@@ -51,12 +51,13 @@ func main() {
 		flag.BoolVar(&useMaxLinesPerItem, "useMaxLinesPerItem", false, "")
 		flag.IntVar(&maxOverlapAutofixes, "maxOverlapAutofixes", 0, "")
 		flag.Parse(); maxOverlapAutofixes &^= -1<<(strconv.IntSize-1)
-		const doubleSizeBegin, doubleSizeEnd = `{\fs30}`, `{\fs15}`
+		const doubleSizeBegin, doubleSizeEnd = `{\fs28}`, `{\fs14}`
 		return astisub.Line{Items: []astisub.LineItem{{Text: filler}}},
 		       astisub.Line{Items: []astisub.LineItem{{Text: doubleSizeBegin + filler + doubleSizeEnd}}},
 		       doubleSizeBegin + lineCircumfix + doubleSizeEnd
 	} ()
 
+	sign := func(i int)int{isntZero:=i!=0;return i>>(strconv.IntSize-1)|int(*(*byte)(Pointer(&isntZero)))}
 	var err error
 	panicCheck := func() {if err != nil {panic(err)}}
 
@@ -72,7 +73,8 @@ func main() {
 			for ; int(m.count)<len(item.Lines); {
 				line := item.Lines[m.count]
 				//line.Items = []astisub.LineItem{{Text: line.String()}}
-				if len(line.Items) > 1 {
+				switch sign(len(line.Items) - 1) {
+				case +1:
 					fmt.Fprintf(os.Stderr, "len(line.Items)==%v; skipping all of them\n", len(line.Items))
 					for _, item := range line.Items {
 						fmt.Fprintf(os.Stderr, "%q\n", item.Text)
@@ -80,6 +82,8 @@ func main() {
 					fmt.Fprintln(os.Stderr)
 					item.Lines = append(item.Lines[:m.count], item.Lines[m.count+1:]...)
 					continue
+				case 0:
+					if line.Items[0].Text=="." {item.Lines[m.count] = fillerLine}
 				}
 				m.inc(strings.Contains(line.Items[0].Text, `\fs`))
 			}

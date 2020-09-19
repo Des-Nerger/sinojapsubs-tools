@@ -35,14 +35,15 @@ func init() {
 }
 
 const (
-	space = " "
+	space = " "//"-"//
 	spaceSize = len(space)
 	maxRuneWidthSpaces = space + space + space + space
 )
-func widthRune(r rune) int {
-	if r < '\u0800' {return 1}
-	if unicode.Is(unicode.Han, r) {return len(maxRuneWidthSpaces)/spaceSize}
-	return 2
+func widthRune(r rune) (i int) {
+	//defer func() {fmt.Printf("%c %v\n", r, i)} ()
+	if r < '\u0800' {i=1; return}
+	if unicode.Is(unicode.Han, r) {i=len(maxRuneWidthSpaces)/spaceSize; return}
+	i=2; return
 }
 func widthString(s string) (width int) {
 	for _, r := range s {width += widthRune(r)}
