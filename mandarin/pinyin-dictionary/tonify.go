@@ -28,7 +28,7 @@ func pinyin(syllables string) string {
 			text.WriteByte(' ')
 		}
 		switch syllable {
-		case "r5", "m2", "n2", "n3", "n4", "ng2", "ng3", "ng4", "hng5":
+		case "r5", "m2", "m4", "n2", "n3", "n4", "ng2", "ng3", "ng4", "hng5", "xx5":
 			text.WriteString(syllable[:1])
 			last := len(syllable)-1
 			text.WriteString(utones[syllable[last:]])

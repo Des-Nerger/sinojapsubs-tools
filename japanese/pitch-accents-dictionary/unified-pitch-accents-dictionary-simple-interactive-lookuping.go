@@ -74,16 +74,20 @@ func main() {
 		pitchAccent := strings.ToLowerSpecial(半角GraphAsLower全角AsUpper, line[i:]) //z2h.Replace(line[i:])
 	*/
 		kBuilder, restBuilder := strings.Builder{}, strings.Builder{}
-		for _, r := range strings.TrimLeftFunc(line, unicode.IsSpace) {
-			switch {
-			case r=='・', r=='ー', /*r=='ﾞ', r=='ﾟ',*/ unicode.In(r, unicode.Hiragana, unicode.Katakana, unicode.Han):
-				kBuilder.WriteRune(r)
-			case unicode.IsSpace(r): r=' '; fallthrough
-			default:
-				restBuilder.WriteRune(func() rune {
-					if '！' <= r && r <= '～' {return r - ('！' - '!')}
-					return r
-				} ())
+		{
+			kBuilderBroken := false
+			for _, r := range strings.TrimLeftFunc(line, unicode.IsSpace) {
+				switch {
+				case unicode.IsSpace(r): r,kBuilderBroken=' ',true; fallthrough
+				case kBuilderBroken: fallthrough
+				default:
+					restBuilder.WriteRune(func() rune {
+						if '！' <= r && r <= '～' {return r - ('！' - '!')}
+						return r
+					} ())
+				case r=='・', r=='ー', /*r=='ﾞ', r=='ﾟ',*/ unicode.In(r, unicode.Hiragana, unicode.Katakana, unicode.Han):
+					kBuilder.WriteRune(r)
+				}
 			}
 		}
 		k := /*kanaconv.KatakanaToHiragana(kanaconv.HankakuToZenkaku(*/kBuilder.String()/*))*/
@@ -92,10 +96,10 @@ func main() {
 		entries := dict[k]
 		type result struct{freq int; e entry}
 		results := make([]result, 0, len(entries))
-		for _, e := range entries {
-			if strings.Contains(e.s[0], rest[0]) && (len(rest)<=1 || strings.Contains(e.s[2], rest[1])) {
-				results = append(results, result{freq[func()string{if e.Type {return k}; return e.s[1]}()], e})
-			}
+		for _, e := range entries { //strings.Contains(e.s[2], rest[1])
+			if strings.Contains(e.s[0], rest[0]) && (len(rest)<=1 || func() bool {
+				for _,s:=range e.s[1:3] {if strings.Contains(s, rest[1]) {return true}}; return false
+			} ()) { results = append(results, result{freq[func()string{if e.Type {return k}; return e.s[1]}()], e}) }
 		}
 		sort.SliceStable(results, func(i, j int) bool {
 			return results[j].freq < results[i].freq

@@ -9,11 +9,11 @@ import (
 func main() {
 	type entry struct {
 		lineNumber int
-		hanzis, definition string
+		s, definition string
 	}
-	containHanzis := func(entries []entry, hanzis string) bool {
+	containS := func(entries []entry, s string) bool {
 		for _, e := range entries {
-			if e.hanzis == hanzis {return true}
+			if e.s == s {return true}
 		}
 		return false
 	}
@@ -49,8 +49,8 @@ func main() {
 				*/
 					e := entry{lineNumber, s[0], s[len(s)-1]}
 					for _, p := range s[1:len(s)-1] {
-						if containHanzis(d[p], e.hanzis) {continue}
-						d[p] = append(d[p], e)
+						if !containS(d[p], e.s) {d[p] = append(d[p], e)}
+						if /*i==0 &&*/ !containS(d[e.s], p) {d[e.s] = append(d[e.s], entry{e.lineNumber, p, e.definition})}
 					}
 				}
 				//fmt.Println(lineNumber)
@@ -78,9 +78,9 @@ func main() {
 					foundInFirstFile = true
 				}
 				if e.lineNumber>lastFirstFileLineNumber {
-					fmt.Printf("%v ", e.hanzis)
+					fmt.Printf("%v ", e.s)
 				} else { 
-					fmt.Printf("%7v  %-10v  %v\n", e.lineNumber, e.hanzis, e.definition)
+					fmt.Printf("%7v  %-10v  %v\n", e.lineNumber, e.s, e.definition)
 				}
 			}
 			if printMore {

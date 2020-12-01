@@ -18,7 +18,7 @@ func main() {
 		alreadyOccured[s[0]] = struct{}{}
 		bw.WriteString(s[0])
 		bw.WriteByte('\t')
-		bw.WriteString(strings.Replace(s[1], " ", "'" /*"·"*/, -1))
+		bw.WriteString(strings.Replace(s[1], " ", "." /*"'" "·"*/, -1))
 		bw.WriteByte('\n')
 	}
 }

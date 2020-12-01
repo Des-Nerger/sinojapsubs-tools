@@ -41,7 +41,7 @@ func main() {
 		debugMode = false
 		for _, combination := range combinations {
 			bw.WriteByte('\t')
-			bw.WriteString(strings.Join(combination, "'"))
+			bw.WriteString(strings.Join(combination, "." /*"'"*/))
 		}
 		bw.WriteByte('\t')
 		bw.WriteString(f[14])
