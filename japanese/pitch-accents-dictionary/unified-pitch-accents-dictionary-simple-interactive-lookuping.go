@@ -105,7 +105,7 @@ func main() {
 			return results[j].freq < results[i].freq
 		})
 		for _, r := range results {
-			fmt.Printf("%-9v%-8v%-12v%v\n", r.e.s[0], r.freq, r.e.s[1], r.e.s[2])
+			fmt.Printf(/*"%-9v%-8v%-12v%v\n"*/ "%v　%v　%v　%v\n", r.e.s[0], r.freq, r.e.s[1], r.e.s[2])
 		}
 	}
 }
