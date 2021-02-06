@@ -43,7 +43,7 @@ func main() {
 			lastIt.Lines = append(lastIt.Lines, it.Lines...)
 		} else {
 			if it.StartAt < lastIt.EndAt {
-				fmt.Println("warning: intersection")
+				fmt.Fprintln(os.Stderr, "warning: intersection")
 			}
 			newItems=append(newItems, it)
 		}
