@@ -18,6 +18,6 @@ func main() {
 	} ()
 	for sc := bufio.NewScanner(os.Stdin); sc.Scan(); {
 		key:=sc.Text(); if key=="" {continue}
-		for _,e := range entries[key] {fmt.Printf("　%-14v  %v\n", e.pinyin, e.definition)}
+		for _,e := range entries[key] {fmt.Printf("%v　%v\n", e.pinyin, e.definition)}
 	}
 }

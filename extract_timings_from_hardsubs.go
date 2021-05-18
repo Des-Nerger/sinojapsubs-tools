@@ -3,9 +3,9 @@ package main
 /*
 	usage examples:
 
-	$ ffmpeg -y -v quiet -i "$B".??[!ast] -map 0:v -filter:v "crop=608:86:154:395" -f rawvideo -pix_fmt yuv444p - | go run extract_timings_from_hardsubs.go -fgYuvRanges d0 -frameSize 156864 "$B".timings.srt
+	$ ffmpeg -y -v quiet -i "$B".??[!ast] -map 0:v -filter:v "crop=608:86:154:395" -f rawvideo -pix_fmt yuv444p - | go run extract_timings_from_hardsubs.go -fgYuvRanges d0 -frameSize 156864 -fps 30 "$B".timings.srt
 
-	$ ffmpeg -y -v quiet -ss 00:00:00 -i "$B".??[!ast] -map 0:v -filter:v "crop=608:86:154:395" -f rawvideo -pix_fmt yuv444p - | go run extract_timings_from_hardsubs.go -fgYuvRanges d0 -frameSize 156864 /dev/null | avplay -loglevel quiet -f rawvideo -pixel_format yuv444p -video_size 608x86 - >/dev/null
+	$ ffmpeg -y -v quiet -ss 00:00:00 -i "$B".??[!ast] -map 0:v -filter:v "crop=608:86:154:395" -f rawvideo -pix_fmt yuv444p - | go run extract_timings_from_hardsubs.go -fgYuvRanges d0 -frameSize 156864 -fps 30 /dev/null | avplay -loglevel quiet -f rawvideo -pixel_format yuv444p -video_size 608x86 - >/dev/null
 */
 
 import (
@@ -27,9 +27,9 @@ func panicIfNotNil(e error) {if e!=nil {panic(e)}}
 func abs(a int) int {m:=a>>(strconv.IntSize-1); return(a + m)^m}
 
 func main() {
-	minFrameCount, maxFgPixelCountDiff, minFgPixelCount, fps := 13, 400, 80, 30.
-	frameDelay := time.Duration(math.Round((1000*1000*1000) / fps))
+	minFrameCount, maxFgPixelCountDiff, minFgPixelCount := 13, 400, 80
 	var frameSize int; flag.IntVar(&frameSize, "frameSize", -1, "")
+	var fps float64; flag.Float64Var(&fps, "fps", 0., "")
 	r := []byte(nil)
 	{
 		var fgYuvRanges string; flag.StringVar(&fgYuvRanges, "fgYuvRanges", "", "")
@@ -42,6 +42,7 @@ func main() {
 			}
 		}
 	}
+	frameDelay := time.Duration(math.Round((1000*1000*1000) / fps))
 	frameSizeThird := frameSize / 3; if frameSizeThird*3 != frameSize {panic(nil)}
 	b,frameCount,fgPixelCount,posSum,head := make([]byte,frameSize),0,0,0,struct{frameCount,fgPixelCount,averagePos int}{}
 	subs := astisub.NewSubtitles()

@@ -14,7 +14,7 @@ func max(a, b int) int {if a > b {return a}; return b}
 func main() {
 	var (n int; err error; removeItemOwnLines bool)
 	separatorLine := func() astisub.Line {
-		flag.IntVar(&n, "n", 6, "")
+		flag.IntVar(&n, "n", 8, "")
 		var separator string; flag.StringVar(&separator, "separator", "|", "")
 		flag.BoolVar(&removeItemOwnLines, "removeItemOwnLines", false, "")
 		flag.Parse()
