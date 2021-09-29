@@ -37,7 +37,7 @@ func (w *window) updateSum(sample int) {
 }
 
 func main() {
-	minFrameCount, maxFgPixelCountDiff, minFgPixelCount := 13, 600, 80
+	minFrameCount, maxFgPixelCountDiff, minFgPixelCount := /*13*/30, 600, 80
 	var frameWidth int; flag.IntVar(&frameWidth, "w", 0, "")
 	var fps float64; flag.Float64Var(&fps, "fps", 0., "")
 	frameSize := func() int {

@@ -14,7 +14,7 @@ func max(a, b int) int {if a > b {return a}; return b}
 func main() {
 	var (n int; err error; removeItemOwnLines bool)
 	separatorLine := func() astisub.Line {
-		flag.IntVar(&n, "n", 8, "")
+		flag.IntVar(&n, "n", 4, "")
 		var separator string; flag.StringVar(&separator, "separator", "|", "")
 		flag.BoolVar(&removeItemOwnLines, "removeItemOwnLines", false, "")
 		flag.Parse()
@@ -22,16 +22,15 @@ func main() {
 	} ()
 	panicCheck := func() {if err != nil {panic(err)}}
 	subs, err := astisub.OpenFile(flag.Arg(0)); panicCheck()
-	linesCount := 0; for _, item := range subs.Items {linesCount += 1 + len(item.Lines)}
+	linesCount := 0; for _, item := range subs.Items {linesCount += len(item.Lines)}
 	lines := make([]astisub.Line, 0, linesCount)
 	for _, item := range subs.Items {
-		lines = append(append(lines, separatorLine), item.Lines...)
-		item.Lines = lines[max(0, len(lines)-(len(item.Lines)+n)) : len(lines) - func() int {
-			if !removeItemOwnLines {return 0}
-			return len(item.Lines)//+1
-		} ()]
+		itemLines := item.Lines
+		item.Lines = append( append(lines[max(0,len(lines)-n):len(lines):len(lines)], separatorLine),
+			func() []astisub.Line {if removeItemOwnLines {return nil}; return itemLines} ()...,
+		)
+		lines = append(lines, itemLines...)
 	}
 	if len(lines) != cap(lines) {panic(nil)}
-	//if len(subs.Items)>=1 && removeItemOwnLines {subs.Items = subs.Items[1:]}
 	err = subs.Write(flag.Arg(1)); panicCheck()
 }
